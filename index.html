@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calculadora de Ranking</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --gold:       #C9A84C;
+      --gold-light: #E8C96A;
+      --gold-dim:   #7A6230;
+      --bg:         #0a0a0a;
+      --surface:    #141414;
+      --surface2:   #1c1c1c;
+      --border:     #2a2a2a;
+      --text:       #f0f0f0;
+      --text-muted: #777;
+      --green:      #2ecc71;
+      --green-dim:  #1a5c38;
+      --red:        #e74c3c;
+      --red-dim:    #5c1a1a;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      padding: 32px 20px 60px;
+      min-height: 100vh;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      margin-bottom: 32px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo-trophy {
+      width: 52px;
+      height: 52px;
+      background: linear-gradient(135deg, var(--gold-dim), var(--gold));
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 26px;
+    }
+
+    header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--gold);
+      line-height: 1.2;
+    }
+
+    header h1 span {
+      display: block;
+      font-size: 12px;
+      font-weight: 400;
+      color: var(--text-muted);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-top: 3px;
+    }
+
+    /* ── Layout ── */
+    .main {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      max-width: 900px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+    }
+
+    .card-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* ── Campos ── */
+    .field {
+      margin-bottom: 14px;
+    }
+
+    .field label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .field select,
+    .field input {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 13px;
+      padding: 9px 12px;
+      outline: none;
+      transition: border-color 0.18s;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+
+    .field select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23777' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      padding-right: 30px;
+      cursor: pointer;
+    }
+
+    .field select:focus,
+    .field input:focus {
+      border-color: var(--gold-dim);
+    }
+
+    .field select option {
+      background: var(--surface2);
+    }
+
+    /* ── Equipo seleccionado ── */
+    .team-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 10px;
+      padding: 10px 12px;
+      background: var(--surface2);
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      min-height: 46px;
+    }
+
+    .team-info-logo {
+      width: 28px;
+      height: 28px;
+      object-fit: contain;
+      flex-shrink: 0;
+    }
+
+    .team-info-logo-fallback {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+
+    .team-info-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .team-info-pts {
+      margin-left: auto;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--gold-light);
+    }
+
+    .team-info-empty {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* ── Resultado ── */
+    .result-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .result-row:last-child { border-bottom: none; }
+
+    .result-team {
+      font-size: 13px;
+      font-weight: 600;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .result-before {
+      font-size: 12px;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .result-delta {
+      font-size: 14px;
+      font-weight: 700;
+      white-space: nowrap;
+      min-width: 60px;
+      text-align: right;
+    }
+
+    .result-delta.positive { color: var(--green); }
+    .result-delta.negative { color: var(--red); }
+    .result-delta.zero     { color: var(--text-muted); }
+
+    .result-after {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--gold-light);
+      white-space: nowrap;
+      min-width: 55px;
+      text-align: right;
+    }
+
+    /* ── Botón calcular ── */
+    .btn-calc {
+      width: 100%;
+      max-width: 900px;
+      margin-top: 20px;
+      padding: 13px;
+      background: var(--gold);
+      border: none;
+      border-radius: 8px;
+      color: #000;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.5px;
+      transition: background 0.18s;
+    }
+
+    .btn-calc:hover { background: var(--gold-light); }
+    .btn-calc:disabled { background: var(--border); color: var(--text-muted); cursor: not-allowed; }
+
+    /* ── Resultado card ── */
+    .result-card {
+      max-width: 900px;
+      margin-top: 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+      display: none;
+    }
+
+    .result-card.visible { display: block; }
+
+    .result-card-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .result-comp-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 400;
+      letter-spacing: 0;
+      text-transform: none;
+    }
+
+    .no-subtract-badge {
+      font-size: 10px;
+      background: var(--gold-dim);
+      color: var(--gold-light);
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-weight: 600;
+      letter-spacing: 0;
+      text-transform: none;
+    }
+
+    /* ── Loading ── */
+    .loading {
+      font-size: 12px;
+      color: var(--text-muted);
+      padding: 8px 0;
+    }
+
+    @media (max-width: 650px) {
+      .main { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo-trophy">🧮</div>
+    <div>
+      <h1>Calculadora de Ranking
+        <span>Sistema ELO adaptado para clubes</span>
+      </h1>
+    </div>
+  </header>
+
+  <div class="main">
+
+    <!-- Equipo Local -->
+    <div class="card">
+      <div class="card-title">🏠 Equipo Local</div>
+      <div class="field">
+        <label>Confederación</label>
+        <select id="con-a" onchange="filterTeams('a')">
+          <option value="">— Todas —</option>
+          <option value="UEFA">UEFA</option>
+          <option value="CONMEBOL">CONMEBOL</option>
+          <option value="AFC">AFC</option>
+          <option value="CAF">CAF</option>
+          <option value="CONCACAF">CONCACAF</option>
+          <option value="OFC">OFC</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>País</label>
+        <select id="fed-a" onchange="filterTeams('a')">
+          <option value="">— Todos —</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>División</label>
+        <select id="div-a" onchange="filterTeams('a')">
+          <option value="">— Todas —</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Equipo</label>
+        <select id="team-a" onchange="selectTeam('a')">
+          <option value="">— Selecciona —</option>
+        </select>
+      </div>
+      <div class="team-info" id="info-a">
+        <span class="team-info-empty">Selecciona un equipo</span>
+      </div>
+    </div>
+
+    <!-- Equipo Visitante -->
+    <div class="card">
+      <div class="card-title">✈️ Equipo Visitante</div>
+      <div class="field">
+        <label>Confederación</label>
+        <select id="con-b" onchange="filterTeams('b')">
+          <option value="">— Todas —</option>
+          <option value="UEFA">UEFA</option>
+          <option value="CONMEBOL">CONMEBOL</option>
+          <option value="AFC">AFC</option>
+          <option value="CAF">CAF</option>
+          <option value="CONCACAF">CONCACAF</option>
+          <option value="OFC">OFC</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>País</label>
+        <select id="fed-b" onchange="filterTeams('b')">
+          <option value="">— Todos —</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>División</label>
+        <select id="div-b" onchange="filterTeams('b')">
+          <option value="">— Todas —</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Equipo</label>
+        <select id="team-b" onchange="selectTeam('b')">
+          <option value="">— Selecciona —</option>
+        </select>
+      </div>
+      <div class="team-info" id="info-b">
+        <span class="team-info-empty">Selecciona un equipo</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Competición y resultado -->
+  <div class="card" style="max-width:900px; margin-top:20px;">
+    <div class="card-title">⚽ Partido</div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+      <div class="field">
+        <label>Competición</label>
+        <select id="comp" onchange="updateComp()">
+          <optgroup label="Doméstico">
+            <option value="liga">Liga</option>
+            <option value="copa">Copa</option>
+            <option value="supercopa_nac">Supercopa Nacional</option>
+          </optgroup>
+          <optgroup label="Europa">
+            <option value="conf_grupo">Conference League – Grupo / Playoff</option>
+            <option value="conf_elim">Conference League – Octavos a Final</option>
+            <option value="euro_grupo">Europa League – Grupo / Playoff</option>
+            <option value="euro_elim">Europa League – Octavos a Final ⭐</option>
+            <option value="ucl_grupo">Champions League – Grupo / Playoff</option>
+            <option value="ucl_elim">Champions League – Octavos a Final ⭐</option>
+            <option value="supercopa_eu">Supercopa de Europa</option>
+          </optgroup>
+          <optgroup label="Mundial">
+            <option value="cwc_grupo">Mundial de Clubes – Grupos</option>
+            <option value="cwc_elim">Mundial de Clubes – Octavos a Final ⭐</option>
+            <option value="intercont">Intercontinental</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="field">
+        <label>Resultado</label>
+        <select id="resultado">
+          <option value="1">Victoria local (tiempo reglamentario)</option>
+          <option value="0.75_local">Victoria local (penaltis)</option>
+          <option value="0.5">Empate</option>
+          <option value="0.75_visit">Victoria visitante (penaltis)</option>
+          <option value="0">Victoria visitante (tiempo reglamentario)</option>
+        </select>
+      </div>
+    </div>
+    <div id="no-subtract-info" style="display:none; margin-top:8px; font-size:12px; color:var(--gold); opacity:0.85;">
+      ⭐ En esta fase no se restan puntos al equipo perdedor
+    </div>
+  </div>
+
+  <button class="btn-calc" id="btn-calc" onclick="calcular()">Calcular</button>
+
+  <!-- Resultado -->
+  <div class="result-card" id="result-card">
+    <div class="result-card-title">
+      <span>Resultado del cálculo</span>
+      <span class="result-comp-label" id="result-comp-label"></span>
+    </div>
+    <div id="result-rows"></div>
+  </div>
+
+  <script>
+    const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSTc8N-QEc9P3n7PIbCFvL_Y-UaRCDpaduABiDqibkyIiTCe2VXfdoCtAaa2V4JqjzF5pvAARkBLFlu/pub?gid=0&single=true&output=csv";
+
+    // Coeficientes I y si restan
+    const COMP_CONFIG = {
+      liga:         { I: 15, noSubtract: false, label: "Liga" },
+      copa:         { I: 20, noSubtract: false, label: "Copa" },
+      supercopa_nac:{ I: 20, noSubtract: false, label: "Supercopa Nacional" },
+      supercopa_eu: { I: 35, noSubtract: false, label: "Supercopa de Europa" },
+      conf_grupo:   { I: 25, noSubtract: false, label: "Conference League – Grupo/Playoff" },
+      conf_elim:    { I: 30, noSubtract: true,  label: "Conference League – Octavos a Final" },
+      euro_grupo:   { I: 30, noSubtract: false, label: "Europa League – Grupo/Playoff" },
+      euro_elim:    { I: 35, noSubtract: true,  label: "Europa League – Octavos a Final" },
+      ucl_grupo:    { I: 35, noSubtract: false, label: "Champions League – Grupo/Playoff" },
+      ucl_elim:     { I: 40, noSubtract: true,  label: "Champions League – Octavos a Final" },
+      cwc_grupo:    { I: 45, noSubtract: false, label: "Mundial de Clubes – Grupos" },
+      cwc_elim:     { I: 50, noSubtract: true,  label: "Mundial de Clubes – Octavos a Final" },
+      intercont:    { I: 45, noSubtract: false, label: "Intercontinental" },
+    };
+
+    let allTeams = [];
+    let selectedA = null;
+    let selectedB = null;
+
+    // ── Imagen helpers ──
+    function logoSlug(nombre) {
+      return nombre.trim().toLowerCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9\s-]/g, "")
+        .replace(/\s+/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "");
+    }
+
+    function logoImgHTML(nombre) {
+      const slug = logoSlug(nombre);
+      const initials = nombre.trim().split(/\s+/).map(w => w[0]).join("").substring(0,3).toUpperCase();
+      return '<img class="team-info-logo" src="logos/' + slug + '.png" alt="' + nombre + '" data-fallback="' + initials + '" data-type="teamlogo">';
+    }
+
+    document.addEventListener("error", function(e) {
+      const img = e.target;
+      if (!img.dataset || img.dataset.type !== "teamlogo") return;
+      const div = document.createElement("div");
+      div.className = "team-info-logo-fallback";
+      div.textContent = img.dataset.fallback || "?";
+      if (img.parentNode) img.parentNode.replaceChild(div, img);
+    }, true);
+
+    // ── Carga de datos ──
+    function parseCSV(text) {
+      const lines = text.trim().split(/\r?\n/).slice(1);
+      return lines.map(line => {
+        const c = line.split(",");
+        return {
+          fed:    (c[0] || "").trim(),
+          div:    (c[1] || "").trim(),
+          con:    (c[2] || "").trim().toUpperCase(),
+          equipo: (c[3] || "").trim(),
+          pts:    parseFloat(c[4]) || 0,
+        };
+      }).filter(r => r.equipo !== "");
+    }
+
+    function populateFilters() {
+      ["a","b"].forEach(side => {
+        // Países únicos
+        const feds = [...new Set(allTeams.map(t => t.fed))].sort();
+        const fedSel = document.getElementById("fed-" + side);
+        feds.forEach(f => {
+          const o = document.createElement("option");
+          o.value = f; o.textContent = f;
+          fedSel.appendChild(o);
+        });
+        // Divisiones únicas
+        const divs = [...new Set(allTeams.map(t => t.div).filter(Boolean))].sort();
+        const divSel = document.getElementById("div-" + side);
+        divs.forEach(d => {
+          const o = document.createElement("option");
+          o.value = d; o.textContent = d;
+          divSel.appendChild(o);
+        });
+      });
+      filterTeams("a");
+      filterTeams("b");
+    }
+
+    function filterTeams(side) {
+      const con = document.getElementById("con-" + side).value;
+      const fed = document.getElementById("fed-" + side).value;
+      const div = document.getElementById("div-" + side).value;
+
+      let filtered = allTeams;
+      if (con) filtered = filtered.filter(t => t.con === con);
+      if (fed) filtered = filtered.filter(t => t.fed === fed);
+      if (div) filtered = filtered.filter(t => t.div === div);
+
+      filtered.sort((a,b) => a.equipo.localeCompare(b.equipo));
+
+      const sel = document.getElementById("team-" + side);
+      sel.innerHTML = '<option value="">— Selecciona —</option>';
+      filtered.forEach(t => {
+        const o = document.createElement("option");
+        o.value = t.equipo;
+        o.dataset.pts = t.pts;
+        o.dataset.fed = t.fed;
+        o.textContent = t.equipo + " (" + t.pts + " pts)";
+        sel.appendChild(o);
+      });
+
+      // Reset selección
+      if (side === "a") selectedA = null;
+      else selectedB = null;
+      updateTeamInfo(side, null);
+    }
+
+    function selectTeam(side) {
+      const sel = document.getElementById("team-" + side);
+      const opt = sel.options[sel.selectedIndex];
+      if (!opt.value) {
+        if (side === "a") selectedA = null;
+        else selectedB = null;
+        updateTeamInfo(side, null);
+        return;
+      }
+      const team = { equipo: opt.value, pts: parseFloat(opt.dataset.pts), fed: opt.dataset.fed };
+      if (side === "a") selectedA = team;
+      else selectedB = team;
+      updateTeamInfo(side, team);
+    }
+
+    function updateTeamInfo(side, team) {
+      const el = document.getElementById("info-" + side);
+      if (!team) {
+        el.innerHTML = '<span class="team-info-empty">Selecciona un equipo</span>';
+        return;
+      }
+      el.innerHTML = logoImgHTML(team.equipo) +
+        '<span class="team-info-name">' + team.equipo + '</span>' +
+        '<span class="team-info-pts">' + team.pts + ' pts</span>';
+    }
+
+    // ── Competición ──
+    function updateComp() {
+      const comp = document.getElementById("comp").value;
+      const cfg = COMP_CONFIG[comp];
+      const info = document.getElementById("no-subtract-info");
+      info.style.display = cfg.noSubtract ? "block" : "none";
+    }
+
+    // ── Cálculo ELO ──
+    function calcular() {
+      if (!selectedA || !selectedB) {
+        alert("Selecciona ambos equipos antes de calcular.");
+        return;
+      }
+
+      const comp = document.getElementById("comp").value;
+      const cfg = COMP_CONFIG[comp];
+      const I = cfg.I;
+      const noSubtract = cfg.noSubtract;
+
+      const resVal = document.getElementById("resultado").value;
+      let W_a, W_b;
+      if (resVal === "1")           { W_a = 1;    W_b = 0; }
+      else if (resVal === "0.75_local") { W_a = 0.75; W_b = 0.25; }
+      else if (resVal === "0.5")    { W_a = 0.5;  W_b = 0.5; }
+      else if (resVal === "0.75_visit") { W_a = 0.25; W_b = 0.75; }
+      else                          { W_a = 0;    W_b = 1; }
+
+      const Pa = selectedA.pts;
+      const Pb = selectedB.pts;
+      const delta = Pa - Pb;
+      const We_a = 1 / (Math.pow(10, -delta / 600) + 1);
+      const We_b = 1 - We_a;
+
+      let change_a = I * (W_a - We_a);
+      let change_b = I * (W_b - We_b);
+
+      // Si noSubtract, los cambios negativos se ponen a 0
+      if (noSubtract) {
+        change_a = Math.max(0, change_a);
+        change_b = Math.max(0, change_b);
+      }
+
+      change_a = Math.round(change_a * 100) / 100;
+      change_b = Math.round(change_b * 100) / 100;
+
+      const newA = Math.round((Pa + change_a) * 100) / 100;
+      const newB = Math.round((Pb + change_b) * 100) / 100;
+
+      // Render resultado
+      const card = document.getElementById("result-card");
+      card.classList.add("visible");
+
+      document.getElementById("result-comp-label").textContent =
+        cfg.label + " · I=" + I + (noSubtract ? " · No resta" : "");
+
+      function deltaHTML(val) {
+        if (val > 0) return '<span class="result-delta positive">+' + val.toFixed(2) + '</span>';
+        if (val < 0) return '<span class="result-delta negative">' + val.toFixed(2) + '</span>';
+        return '<span class="result-delta zero">±0.00</span>';
+      }
+
+      document.getElementById("result-rows").innerHTML = `
+        <div class="result-row">
+          <span class="result-team">${selectedA.equipo}</span>
+          <span class="result-before">${Pa} pts</span>
+          ${deltaHTML(change_a)}
+          <span class="result-after">${newA.toFixed(2)} pts</span>
+        </div>
+        <div class="result-row">
+          <span class="result-team">${selectedB.equipo}</span>
+          <span class="result-before">${Pb} pts</span>
+          ${deltaHTML(change_b)}
+          <span class="result-after">${newB.toFixed(2)} pts</span>
+        </div>
+      `;
+
+      card.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+
+    // ── Init ──
+    fetch(CSV_URL)
+      .then(r => r.text())
+      .then(text => {
+        allTeams = parseCSV(text);
+        allTeams.sort((a, b) => b.pts - a.pts);
+        populateFilters();
+      })
+      .catch(err => console.error("Error cargando equipos:", err));
+  </script>
+
+</body>
+</html>
